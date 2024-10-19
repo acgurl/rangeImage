@@ -19,7 +19,13 @@ const handler = async (event) => {
 
   try {
     // 读取txt文件中的所有图片链接
-    const links = fs.readFileSync('/txt/ys.txt',  'utf-8').split('\n').filter(link => link.trim()  !== '');
+    fs.chmod('./ys.txt',  '644', (err) => {
+  if (err) {
+    console.error(err); 
+  } else {
+    console.log('File  permissions set successfully.');
+    
+    const links = fs.readFileSync('./ys.txt',  'utf-8').split('\n').filter(link => link.trim()  !== '');
 
     // 随机选择一个链接
     const randomIndex = Math.floor(Math.random()  * links.length); 
