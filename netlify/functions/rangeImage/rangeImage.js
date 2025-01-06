@@ -1,61 +1,28 @@
-const fs = require('fs');
-const path = require('path');
+import { Handler } from "@netlify/functions";
 
-const handler = async (event) => {
-  // 检查请求的来源域名
-  const { headers } = event;
-  const requestOrigin = headers.origin  || headers.Origin || '';
+// 假设这里有一个图片URL数组，你可以根据实际情况替换这些URL
+const imageUrls = [
+  "https://i0.hdslb.com/bfs/article/5e587e5511baf9c6366213d78a5468f73493083985480649.jpg",
+  "https://i0.hdslb.com/bfs/article/2aa2e85c44a13d1095f1c5fc10e7db653493083985480649.jpg",
+  "https://i0.hdslb.com/bfs/article/1e1042c7a0e7ace3e4c0d9c8d2dcbf1a3493083985480649.jpg",
+  "https://i0.hdslb.com/bfs/article/f3db656873a69fa6ba55e112d76f7e4f3493083985480649.png",
+  "https://i0.hdslb.com/bfs/article/faaf19210b1d07f8695884cd19d2da5e3493083985480649.png",
+  "https://i0.hdslb.com/bfs/article/766f1c08349fbd61c26a5be90b3d00843493083985480649.jpg",
+  "https://i0.hdslb.com/bfs/article/f561696ef41923c6e59f77aaf24c07383493083985480649.jpg",
+  "https://i0.hdslb.com/bfs/article/23299951dc1ca3ebc527e4a7c5dad9083493083985480649.png"
+];
 
-  // if (requestOrigin !== 'https://www.linguoguang.com')  {
-  //   return {
-  //     statusCode: 403,
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //       'Access-Control-Allow-Origin': 'https://www.linguoguang.com', 
-  //     },
-  //     body: JSON.stringify({  error: 'Access denied.' }),
-  //   };
-  // }
+const handler: Handler = async (event, context) => {
+  const randomIndex = Math.floor(Math.random()  * imageUrls.length); 
+  const redirectUrl = imageUrls[randomIndex];
 
-  try {
-    // 读取txt文件中的所有图片链接
-    fs.chmod('./ys.txt',  '644', (err) => {
-  if (err) {
-    console.error(err); 
-  } else {
-    console.log('File  permissions set successfully.');
-    
-    const links = fs.readFileSync('./ys.txt',  'utf-8').split('\n').filter(link => link.trim()  !== '');
-
-    // 随机选择一个链接
-    const randomIndex = Math.floor(Math.random()  * links.length); 
-    const randomLink = links[randomIndex];
-
-    // 302跳转至该链接
-    return {
-      statusCode: 302,
-      headers: {
-        'Location': randomLink,
-        'Access-Control-Allow-Origin': '*', 
-        'Referrer-Policy': no-referrer, 
-      },
-    };
-  } catch (error) {
-    console.log(error); 
-
-    // 返回错误消息
-    return {
-      statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Methods': 'POST',
-        'Access-Control-Allow-Origin': '*', 
-      },
-      body: JSON.stringify({ 
-        error: 'An error occurred while fetching the random image link.',
-      }),
-    };
-  }
+  return {
+    statusCode: 301,
+    headers: {
+      Location: redirectUrl
+    },
+    body: ""
+  };
 };
 
-module.exports  = { handler };
+export { handler };
