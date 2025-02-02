@@ -3,6 +3,6 @@
 
 [[redirects]]
   from = "/ys"
-  to = "/.netlify/functions/random-image"
+  to = "/.netlify/functions/rangeImage"
   status = 200
   force = true
