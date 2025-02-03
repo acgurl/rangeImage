@@ -27,20 +27,7 @@ const connectToDatabase = async () => {
   return cachedClient;
 };
 
-// 新增 URL 清理函数
-const sanitizeImageUrl = (url) => {
-  try {
-    const parsedUrl = new URL(url);
-    // 清除所有查询参数
-    parsedUrl.search = '';
-    return parsedUrl.toString();
-  } catch (error) {
-    console.error('Invalid image URL:', url);
-    throw new Error('图片链接格式错误');
-  }
-};
-
-const getRandomImageUrl = async (type) => {
+const getRandomImageUrl = async (type, queryParams) => {
   if (!type || !TABLE_MAP[type]) {
     throw new Error(`无效类型参数，支持的类型：${Object.keys(TABLE_MAP).join(', ')}`);
   }
@@ -53,18 +40,28 @@ const getRandomImageUrl = async (type) => {
     { $project: { _id: 0, url: 1 } }
   ]).next();
 
-  // 清理图片 URL
-  return result?.url ? sanitizeImageUrl(result.url) : null;
+  // 清理图片 URL 并附加查询参数
+  return result?.url ? appendQueryParams(result.url, queryParams) : null;
+};
+
+const appendQueryParams = (url, queryParams) => {
+  if (!queryParams) return url;
+  const parsedUrl = new URL(url);
+  Object.entries(queryParams).forEach(([key, value]) => {
+    parsedUrl.searchParams.append(key, value);
+  });
+  return parsedUrl.toString();
 };
 
 exports.handler = async (event) => {
   try {
     const startTime = Date.now();
     const type = event.queryStringParameters?.type?.toLowerCase();
-    const imageUrl = await getRandomImageUrl(type);
+    const queryParams = event.queryStringParameters; // 获取所有查询参数
+    const imageUrl = await getRandomImageUrl(type, queryParams);
 
     // 添加日志验证返回的 URL 是否已经清理了查询参数
-    console.log('Sanitized Image URL:', imageUrl);
+    console.log('Image URL with Query Params:', imageUrl);
 
     if (!imageUrl) {
       return {
