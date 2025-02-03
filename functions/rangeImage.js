@@ -1,51 +1,51 @@
 const { MongoClient } = require('mongodb');
 
-// MongoDB 连接配置
-const MONGODB_URI = process.env.MONGODB_URI; // 从环境变量获取连接字符串
 const DB_NAME = 'api';
 const COLLECTION_NAME = 'api_ysh';
 
-// 创建 MongoDB 客户端实例
-const client = new MongoClient(MONGODB_URI);
+// 添加环境变量验证
+const validateEnv = () => {
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is not defined in environment variables');
+  }
+  if (!process.env.MONGODB_URI.startsWith('mongodb+srv://')) {
+    throw new Error('Invalid MongoDB connection string format');
+  }
+};
 
-// 随机选择图片URL的函数
 const getRandomImageUrl = async () => {
+  validateEnv(); // 执行验证
+  
+  const client = new MongoClient(process.env.MONGODB_URI);
   try {
     await client.connect();
     const collection = client.db(DB_NAME).collection(COLLECTION_NAME);
-    
-    // 使用聚合框架随机采样一个文档
     const pipeline = [{ $sample: { size: 1 } }];
     const result = await collection.aggregate(pipeline).next();
-    
-    return result ? result.url : null; // 假设字段名为 url
+    return result?.url; // 使用可选链操作符
   } finally {
     await client.close();
   }
 };
 
-// 边缘函数处理程序
-exports.handler = async (event, context, callback) => {
+exports.handler = async (event, context) => {
   try {
     const imageUrl = await getRandomImageUrl();
-    
     if (!imageUrl) {
-      throw new Error('No image URLs found in database');
+      return { statusCode: 404, body: 'No image found' };
     }
-
-    const response = {
+    return {
       statusCode: 301,
-      headers: {
-        Location: imageUrl,
-      },
+      headers: { Location: imageUrl }
     };
-
-    callback(null, response);
   } catch (error) {
-    console.error('Error:', error);
-    callback(null, {
+    console.error('Fatal error:', error);
+    return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Internal Server Error' })
-    });
+      body: JSON.stringify({
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      })
+    };
   }
 };
