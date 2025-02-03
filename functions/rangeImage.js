@@ -1,50 +1,77 @@
 const { MongoClient } = require('mongodb');
 
+const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME = 'api';
-const COLLECTION_NAME = 'api_ysh';
 
-// 添加环境变量验证
-const validateEnv = () => {
+// 表名映射配置
+const TABLE_MAP = {
+  ysh: 'api_ysh',
+  yss: 'api_yss',
+  xqh: 'api_xqh',
+  xqs: 'api_xqs'
+};
+
+// 验证环境和参数
+const validateInput = (type) => {
   if (!process.env.MONGODB_URI) {
-    throw new Error('MONGODB_URI is not defined in environment variables');
+    throw new Error('MONGODB_URI 未配置');
   }
-  if (!process.env.MONGODB_URI.startsWith('mongodb+srv://')) {
-    throw new Error('Invalid MongoDB connection string format');
+  
+  if (!type || !TABLE_MAP[type]) {
+    throw new Error(`无效类型参数，支持的类型：${Object.keys(TABLE_MAP).join(', ')}`);
   }
 };
 
-const getRandomImageUrl = async () => {
-  validateEnv(); // 执行验证
+const getRandomImageUrl = async (type) => {
+  validateInput(type);
   
-  const client = new MongoClient(process.env.MONGODB_URI);
+  const client = new MongoClient(MONGODB_URI);
   try {
     await client.connect();
-    const collection = client.db(DB_NAME).collection(COLLECTION_NAME);
-    const pipeline = [{ $sample: { size: 1 } }];
-    const result = await collection.aggregate(pipeline).next();
-    return result?.url; // 使用可选链操作符
+    const collection = client.db(DB_NAME).collection(TABLE_MAP[type]);
+    
+    // 使用更高效的随机查询方式
+    const result = await collection.aggregate([
+      { $sample: { size: 1 } },
+      { $project: { _id: 0, url: 1 } }
+    ]).next();
+
+    return result?.url;
   } finally {
     await client.close();
   }
 };
 
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
   try {
-    const imageUrl = await getRandomImageUrl();
+    // 从查询参数获取类型
+    const type = event.queryStringParameters?.type?.toLowerCase();
+    
+    // 获取随机图片URL
+    const imageUrl = await getRandomImageUrl(type);
+    
     if (!imageUrl) {
-      return { statusCode: 404, body: 'No image found' };
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: '未找到图片' })
+      };
     }
+
     return {
       statusCode: 301,
-      headers: { Location: imageUrl }
+      headers: {
+        'Cache-Control': 'no-cache',
+        Location: imageUrl
+      }
     };
   } catch (error) {
-    console.error('Fatal error:', error);
+    console.error('请求处理失败:', error);
+    
     return {
-      statusCode: 500,
+      statusCode: error.message.includes('无效类型参数') ? 400 : 500,
       body: JSON.stringify({
         error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        valid_types: Object.keys(TABLE_MAP)
       })
     };
   }

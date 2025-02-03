@@ -2,7 +2,7 @@
   functions = "functions"
 
 [[redirects]]
-  from = "/ys"
+  from = "/img"
   to = "/.netlify/functions/rangeImage"
   status = 200
   force = true
