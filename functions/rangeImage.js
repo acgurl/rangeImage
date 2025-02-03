@@ -70,11 +70,12 @@ exports.handler = async (event) => {
 
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
+    // 返回 301 重定向响应
     return {
       statusCode: 301,
       headers: {
         'Cache-Control': 'no-cache', // 禁用缓存
-        'Location': imageUrl, // 重定向到图片 URL
+        'Location': imageUrl, // 重定向到图片 URL（不包含原始查询参数）
         'Access-Control-Allow-Origin': '*', // 允许跨域
         'Referrer-Policy': 'no-referrer', // 不发送 Referrer 信息
       }
