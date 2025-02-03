@@ -63,6 +63,9 @@ exports.handler = async (event) => {
     const type = event.queryStringParameters?.type?.toLowerCase();
     const imageUrl = await getRandomImageUrl(type);
 
+    // 添加日志验证返回的 URL 是否已经清理了查询参数
+    console.log('Sanitized Image URL:', imageUrl);
+
     if (!imageUrl) {
       return {
         statusCode: 404,
