@@ -42,7 +42,6 @@ const getRandomImageUrl = async (type) => {
   return result?.url || null;
 };
 
-
 exports.handler = async (event) => {
   try {
     const startTime = Date.now();
@@ -60,7 +59,9 @@ exports.handler = async (event) => {
       };
     }
 
-    const cleanedImageUrl = new URL(imageUrl).origin + new URL(imageUrl).pathname; // 新代码
+    // 确保 imageUrl 不包含查询参数
+    const urlObj = new URL(imageUrl);
+    const cleanedImageUrl = urlObj.origin + urlObj.pathname;
 
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
@@ -68,7 +69,7 @@ exports.handler = async (event) => {
       statusCode: 301,
       headers: {
         'Cache-Control': 'no-cache',
-        'Location': cleanedImageUrl, // 修改后的代码
+        'Location': cleanedImageUrl,
         'Access-Control-Allow-Origin': '*',
         'Referrer-Policy': 'no-referrer'
       }
