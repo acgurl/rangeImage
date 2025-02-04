@@ -3,7 +3,6 @@ const { MongoClient } = require('mongodb');
 const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME = 'api';
 
-// 表名映射配置
 const TABLE_MAP = {
   ysh: 'api_ysh',
   yss: 'api_yss',
@@ -59,9 +58,10 @@ exports.handler = async (event) => {
       };
     }
 
-    // 确保 imageUrl 不包含查询参数
+    // 确保移除所有查询参数
     const urlObj = new URL(imageUrl);
-    const cleanedImageUrl = urlObj.origin + urlObj.pathname;
+    urlObj.search = ''; // 清除查询参数
+    const cleanedImageUrl = urlObj.href;
 
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
