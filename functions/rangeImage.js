@@ -41,7 +41,7 @@ const getRandomImageUrl = async (type) => {
   return result?.url || null;
 };
 
-exports.handler = async (event) => {
+exports.handler = async (event, context) => {
   try {
     const startTime = Date.now();
     const type = event.queryStringParameters?.type?.toLowerCase();
