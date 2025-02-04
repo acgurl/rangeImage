@@ -1,5 +1,4 @@
 const { MongoClient } = require('mongodb');
-const { URL } = require('url'); // 新增 URL 解析模块
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME = 'api';
@@ -27,7 +26,7 @@ const connectToDatabase = async () => {
   return cachedClient;
 };
 
-const getRandomImageUrl = async (type, queryParams) => {
+const getRandomImageUrl = async (type) => {
   if (!type || !TABLE_MAP[type]) {
     throw new Error(`无效类型参数，支持的类型：${Object.keys(TABLE_MAP).join(', ')}`);
   }
@@ -40,28 +39,16 @@ const getRandomImageUrl = async (type, queryParams) => {
     { $project: { _id: 0, url: 1 } }
   ]).next();
 
-  // 清理图片 URL 并附加查询参数
-  return result?.url ? appendQueryParams(result.url, queryParams) : null;
+  return result?.url || null;
 };
 
-const appendQueryParams = (url, queryParams) => {
-  if (!queryParams) return url;
-  const parsedUrl = new URL(url);
-  Object.entries(queryParams).forEach(([key, value]) => {
-    parsedUrl.searchParams.append(key, value);
-  });
-  return parsedUrl.toString();
-};
 
 exports.handler = async (event) => {
   try {
     const startTime = Date.now();
     const type = event.queryStringParameters?.type?.toLowerCase();
-    const queryParams = event.queryStringParameters; // 获取所有查询参数
-    const imageUrl = await getRandomImageUrl(type, queryParams);
+    const imageUrl = await getRandomImageUrl(type);
 
-    // 添加日志验证返回的 URL 是否已经清理了查询参数
-    console.log('Image URL with Query Params:', imageUrl);
 
     if (!imageUrl) {
       return {
