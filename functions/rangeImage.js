@@ -49,7 +49,6 @@ exports.handler = async (event) => {
     const type = event.queryStringParameters?.type?.toLowerCase();
     const imageUrl = await getRandomImageUrl(type);
 
-
     if (!imageUrl) {
       return {
         statusCode: 404,
@@ -61,13 +60,15 @@ exports.handler = async (event) => {
       };
     }
 
+    const cleanedImageUrl = new URL(imageUrl).origin + new URL(imageUrl).pathname; // 新代码
+
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
     return {
       statusCode: 301,
       headers: {
         'Cache-Control': 'no-cache',
-        'Location': imageUrl,
+        'Location': cleanedImageUrl, // 修改后的代码
         'Access-Control-Allow-Origin': '*',
         'Referrer-Policy': 'no-referrer'
       }
