@@ -66,7 +66,7 @@ exports.handler = async (event) => {
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
     return {
-      statusCode: 301,
+      statusCode: 302,
       headers: {
         'Cache-Control': 'no-cache',
         'Location': cleanedImageUrl,
