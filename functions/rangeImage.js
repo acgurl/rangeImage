@@ -61,7 +61,7 @@ exports.handler = async (event) => {
     // 确保移除所有查询参数
     const urlObj = new URL(imageUrl);
     urlObj.search = ''; // 清除查询参数
-    const cleanedImageUrl = urlObj.href;
+    const cleanedImageUrl = urlObj.toString(); // 获取完整的 URL 字符串
 
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
