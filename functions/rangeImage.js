@@ -74,12 +74,15 @@ exports.handler = async (event, context) => {
 
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
+    // 清理imageUrl以去除查询参数
+    const cleanImageUrl = new URL(imageUrl).origin + new URL(imageUrl).pathname;
+
     // 返回响应
     return {
-      statusCode: 308,                // 永久重定向
+      statusCode: 302,                // 临时重定向
       headers: {
         'Cache-Control': 'no-store',  // 禁止缓存
-        'Location': imageUrl,         // 重定向地址
+        'Location': cleanImageUrl,      // 重定向地址
         'Access-Control-Allow-Origin': '*',
         'Referrer-Policy': 'no-referrer',
         'Strict-Transport-Security': 'max-age=31536000',
