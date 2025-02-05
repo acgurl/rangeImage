@@ -31,6 +31,16 @@ const connectToDatabase = async () => {
   return cachedClient;
 };
 
+// 清理URL，移除所有查询参数
+const cleanImageUrl = (url) => {
+  try {
+    return url.split('?')[0];  // 简单地移除所有查询参数
+  } catch (error) {
+    console.error('URL清理失败:', error);
+    return url;
+  }
+};
+
 // 获取随机图片URL
 const getRandomImageUrl = async (type) => {
   // 验证图片类型是否有效
@@ -47,7 +57,7 @@ const getRandomImageUrl = async (type) => {
     { $project: { _id: 0, url: 1 } } // 只返回url字段
   ]).next();
 
-  return result?.url || null;
+  return result?.url ? cleanImageUrl(result.url) : null;
 };
 
 // Netlify Functions处理函数
