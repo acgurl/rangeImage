@@ -16,7 +16,8 @@
 
 # 环境变量配置
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "22"
+  MONGODB_URI=mongodb+srv://test:ZZLoPmn4UCEnlKSX@cluster0.l6mx6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 
 # API重定向规则
 [[redirects]]
