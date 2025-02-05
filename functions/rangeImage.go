@@ -37,7 +37,12 @@ func connectToMongoDB() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	clientOptions := options.Client().ApplyURI(os.Getenv("MONGODB_URI"))
+	clientOptions := options.Client().
+		ApplyURI(os.Getenv("MONGODB_URI")).
+		SetMaxPoolSize(10).
+		SetConnectTimeout(5 * time.Second).
+		SetSocketTimeout(5 * time.Second)
+
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return nil, err

@@ -5,7 +5,6 @@
 
 # 环境变量配置
 [build.environment]
-  NODE_VERSION = "22"
   GO_VERSION = "1.21"
   MONGODB_URI = "mongodb+srv://test:ZZLoPmn4UCEnlKSX@cluster0.l6mx6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 

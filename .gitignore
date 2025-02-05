@@ -131,3 +131,27 @@ dist
 
 # Local Netlify folder
 .netlify
+
+# 编译输出
+functions/rangeImage
+functions/rangeImage.exe
+
+# Go相关
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.sum
+
+# IDE相关
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统相关
+.DS_Store
+Thumbs.db
