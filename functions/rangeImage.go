@@ -225,6 +225,8 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		StatusCode: 303,
 		Headers: map[string]string{
 			"Location": imageURL,
+			"Referrer-Policy": "no-referrer",
+			"Access-Control-Allow-Origin": "*",
 		},
 	}, nil
 }
