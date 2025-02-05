@@ -1,8 +1,6 @@
 [build]
   # 指定函数目录
   functions = "functions"
-  # 构建命令
-  command = "npm run build"
   # 发布目录
   publish = "public"
 
@@ -17,7 +15,7 @@
 # 环境变量配置
 [build.environment]
   NODE_VERSION = "22"
-  MONGODB_URI= "mongodb+srv://test:ZZLoPmn4UCEnlKSX@cluster0.l6mx6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+  MONGODB_URI = "mongodb+srv://test:ZZLoPmn4UCEnlKSX@cluster0.l6mx6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 # API重定向规则
 [[redirects]]
