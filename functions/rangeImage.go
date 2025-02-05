@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -26,9 +27,15 @@ var tableMap = map[string]string{
 var (
 	mongoClient *mongo.Client
 	dbName      = "api"
+	// 添加缓存
+	cache       = struct {
+		sync.RWMutex
+		urls map[string][]string
+	}{urls: make(map[string][]string)}
+	cacheSize   = 10  // 每个类型缓存10个URL
 )
 
-// 数据库连接函数
+// 数据库连接函数优化
 func connectToMongoDB() (*mongo.Client, error) {
 	if mongoClient != nil {
 		return mongoClient, nil
@@ -44,17 +51,13 @@ func connectToMongoDB() (*mongo.Client, error) {
 
 	clientOptions := options.Client().
 		ApplyURI(mongoURI).
-		SetMaxPoolSize(10).
-		SetConnectTimeout(5 * time.Second).
-		SetSocketTimeout(5 * time.Second)
+		SetMaxPoolSize(5).          // 减小连接池大小
+		SetMinPoolSize(1).          // 保持至少一个连接
+		SetMaxConnIdleTime(time.Minute). // 空闲连接超时
+		SetConnectTimeout(2*time.Second).
+		SetSocketTimeout(2*time.Second)
 
 	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	// 测试连接
-	err = client.Ping(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -63,48 +66,87 @@ func connectToMongoDB() (*mongo.Client, error) {
 	return client, nil
 }
 
-// 获取随机图片URL
-func getRandomImageURL(imageType string) (string, error) {
-	collectionName, ok := tableMap[imageType]
-	if (!ok) {
-		return "", fmt.Errorf("无效类型参数，支持的类型：%v", getValidTypes())
-	}
-
-	client, err := connectToMongoDB()
-	if err != nil {
-		return "", err
-	}
-
-	collection := client.Database(dbName).Collection(collectionName)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 批量获取URLs并缓存
+func preloadURLs(client *mongo.Client, imageType string) error {
+	collection := client.Database(dbName).Collection(tableMap[imageType])
+	
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	// 聚合查询随机获取一条记录
 	pipeline := mongo.Pipeline{
-		{{"$sample", bson.D{{"size", 1}}}},
+		{{"$sample", bson.D{{"size", cacheSize}}}},
 		{{"$project", bson.D{{"_id", 0}, {"url", 1}}}},
 	}
 
 	cursor, err := collection.Aggregate(ctx, pipeline)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer cursor.Close(ctx)
 
-	var result struct {
-		URL string `bson:"url"`
-	}
-
-	if cursor.Next(ctx) {
-		err = cursor.Decode(&result)
-		if err != nil {
-			return "", err
+	var urls []string
+	for cursor.Next(ctx) {
+		var result struct {
+			URL string `bson:"url"`
 		}
-		return result.URL, nil
+		if err := cursor.Decode(&result); err != nil {
+			continue
+		}
+		urls = append(urls, result.URL)
 	}
 
-	return "", fmt.Errorf("未找到图片")
+	if len(urls) > 0 {
+		cache.Lock()
+		cache.urls[imageType] = urls
+		cache.Unlock()
+	}
+
+	return nil
+}
+
+// 获取随机图片URL优化版
+func getRandomImageURL(imageType string) (string, error) {
+	if _, ok := tableMap[imageType]; !ok {
+		return "", fmt.Errorf("无效类型参数，支持的类型：%v", getValidTypes())
+	}
+
+	// 尝试从缓存获取
+	cache.RLock()
+	urls, exists := cache.urls[imageType]
+	cache.RUnlock()
+
+	if exists && len(urls) > 0 {
+		// 从缓存随机返回一个URL
+		url := urls[0]
+		
+		// 异步更新缓存
+		go func() {
+			cache.Lock()
+			cache.urls[imageType] = urls[1:]
+			cache.Unlock()
+
+			// 如果缓存不足，异步补充
+			if len(urls) < cacheSize/2 {
+				if client, err := connectToMongoDB(); err == nil {
+					preloadURLs(client, imageType)
+				}
+			}
+		}()
+
+		return url, nil
+	}
+
+	// 缓存未命中，重新加载
+	client, err := connectToMongoDB()
+	if err != nil {
+		return "", err
+	}
+
+	if err := preloadURLs(client, imageType); err != nil {
+		return "", err
+	}
+
+	return getRandomImageURL(imageType)
 }
 
 func getValidTypes() []string {
@@ -115,7 +157,7 @@ func getValidTypes() []string {
 	return types
 }
 
-// 处理函数
+// 处理函数优化
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	startTime := time.Now()
 	
