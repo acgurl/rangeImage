@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -178,6 +179,36 @@ func getValidTypes() []string {
 	return types
 }
 
+// 处理图片URL，插入style参数
+func processImageURL(originalURL string, style string) string {
+    if style == "" {
+        return originalURL
+    }
+
+    // 解析URL
+    u, err := url.Parse(originalURL)
+    if err != nil {
+        return originalURL
+    }
+
+    // 分离基础URL和查询参数
+    baseURL := u.Scheme + "://" + u.Host + u.Path
+    params := u.Query()
+
+    // 构建新的URL：baseURL + style + 原有参数
+    var finalURL string
+    if strings.Contains(u.Path, "?") {
+        finalURL = baseURL + "@" + style + "&" + params.Encode()
+    } else {
+        finalURL = baseURL + "@" + style
+        if len(params) > 0 {
+            finalURL += "?" + params.Encode()
+        }
+    }
+
+    return finalURL
+}
+
 // 处理函数优化
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	startTime := time.Now()
@@ -191,6 +222,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 
 	// 获取参数
 	imageType := strings.ToLower(request.QueryStringParameters["type"])
+	style := request.QueryStringParameters["style"]
 	wantJSON := request.QueryStringParameters["json"] == "true"
 
 	// 获取随机图片
@@ -222,7 +254,14 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		}, nil
 	}
 
-	fmt.Printf("请求处理时间: %v, 类型: %s\n", time.Since(startTime), imageType)
+	// 处理style参数
+    imageURL = processImageURL(imageURL, style)
+
+	fmt.Printf("请求处理时间: %v, 类型: %s, 样式: %s\n", 
+		time.Since(startTime), 
+		imageType,
+		style,
+	)
 
 	if wantJSON {
 		response := map[string]interface{}{
