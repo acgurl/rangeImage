@@ -46,20 +46,27 @@ func connectToMongoDB() (*mongo.Client, error) {
 		return nil, fmt.Errorf("MONGODB_URI 环境变量未设置")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	clientOptions := options.Client().
 		ApplyURI(mongoURI).
-		SetMaxPoolSize(5).          // 减小连接池大小
-		SetMinPoolSize(1).          // 保持至少一个连接
-		SetMaxConnIdleTime(time.Minute). // 空闲连接超时
-		SetConnectTimeout(2*time.Second).
-		SetSocketTimeout(2*time.Second)
+		SetMaxPoolSize(5).
+		SetMinPoolSize(1).
+		SetMaxConnIdleTime(time.Minute).
+		SetConnectTimeout(5*time.Second).     // 增加连接超时
+		SetServerSelectionTimeout(5*time.Second).  // 增加服务器选择超时
+		SetSocketTimeout(10*time.Second)          // 增加套接字超时
+
+	// 使用更长的上下文超时
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("连接MongoDB失败: %v", err)
+	}
+
+	// 测试连接
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, fmt.Errorf("MongoDB ping失败: %v", err)
 	}
 
 	mongoClient = client
@@ -68,11 +75,12 @@ func connectToMongoDB() (*mongo.Client, error) {
 
 // 批量获取URLs并缓存
 func preloadURLs(client *mongo.Client, imageType string) error {
-	collection := client.Database(dbName).Collection(tableMap[imageType])
-	
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	// 使用更长的上下文超时
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	collection := client.Database(dbName).Collection(tableMap[imageType])
+	
 	pipeline := mongo.Pipeline{
 		{{"$sample", bson.D{{"size", cacheSize}}}},
 		{{"$project", bson.D{{"_id", 0}, {"url", 1}}}},
@@ -137,16 +145,29 @@ func getRandomImageURL(imageType string) (string, error) {
 	}
 
 	// 缓存未命中，重新加载
-	client, err := connectToMongoDB()
-	if err != nil {
-		return "", err
+	retries := 2
+	var lastErr error
+
+	for i := 0; i <= retries; i++ {
+		client, err := connectToMongoDB()
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		err = preloadURLs(client, imageType)
+		if err == nil {
+			return getRandomImageURL(imageType)
+		}
+		lastErr = err
+
+		// 短暂等待后重试
+		if i < retries {
+			time.Sleep(time.Second * time.Duration(i+1))
+		}
 	}
 
-	if err := preloadURLs(client, imageType); err != nil {
-		return "", err
-	}
-
-	return getRandomImageURL(imageType)
+	return "", fmt.Errorf("获取图片URL失败(重试%d次): %v", retries, lastErr)
 }
 
 func getValidTypes() []string {
