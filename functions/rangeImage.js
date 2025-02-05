@@ -64,11 +64,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 404,
         headers: {
-          'Access-Control-Allow-Origin': '*',          // 允许跨域访问
-          'Referrer-Policy': 'no-referrer',           // 禁止发送Referer
-          'Strict-Transport-Security': 'max-age=31536000', // 强制HTTPS
-          'X-Content-Type-Options': 'nosniff',        // 禁止MIME类型嗅探
-          'X-Frame-Options': 'DENY'                   // 禁止iframe嵌入
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ error: '未找到图片' })
       };
@@ -87,14 +83,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 200,
         headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-store',
-          'Access-Control-Allow-Origin': '*',
-          'Referrer-Policy': 'no-referrer',
-          'Strict-Transport-Security': 'max-age=31536000',
-          'X-Content-Type-Options': 'nosniff',
-          'X-Frame-Options': 'DENY',
-          'Vary': 'Accept, Origin, query'
+          'Content-Type': 'text/html; charset=utf-8'
         },
         body: html
       };
@@ -103,14 +92,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 200,
         headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store',
-          'Access-Control-Allow-Origin': '*',
-          'Referrer-Policy': 'no-referrer',
-          'Strict-Transport-Security': 'max-age=31536000',
-          'X-Content-Type-Options': 'nosniff',
-          'X-Frame-Options': 'DENY',
-          'Vary': 'Accept, Origin, query'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           code: 200,
@@ -123,14 +105,7 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 303,
         headers: {
-          'Location': imageUrl,
-          'Cache-Control': 'no-store',
-          'Access-Control-Allow-Origin': '*',
-          'Referrer-Policy': 'no-referrer',
-          'Strict-Transport-Security': 'max-age=31536000',
-          'X-Content-Type-Options': 'nosniff',
-          'X-Frame-Options': 'DENY',
-          'Vary': 'Accept, Origin, query'
+          'Location': imageUrl
         }
       };
     }
@@ -140,11 +115,7 @@ exports.handler = async (event, context) => {
     return {
       statusCode: error.message.includes('无效类型参数') ? 400 : 500,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Referrer-Policy': 'no-referrer',
-        'Strict-Transport-Security': 'max-age=31536000',
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         error: error.message,
