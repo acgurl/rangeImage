@@ -1,7 +1,10 @@
 const { MongoClient } = require('mongodb');
 
 // MongoDB连接配置
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI || 'your-default-mongodb-uri';
+if (!MONGODB_URI) {
+  throw new Error('MONGODB_URI is not defined');
+}
 const DB_NAME = 'api';
 
 // 图片类型与数据库集合映射表
@@ -24,7 +27,12 @@ const connectToDatabase = async () => {
   // 创建新连接
   const client = new MongoClient(MONGODB_URI, {
     maxPoolSize: 10,        // 最大连接池大小
-    connectTimeoutMS: 5000, // 连接超时时间
+  try {
+    cachedClient = await client.connect();
+  } catch (error) {
+    console.error('MongoDB连接失败:', error);
+    throw new Error('数据库连接失败');
+  }
     socketTimeoutMS: 5000,  // 套接字超时时间
   });
   cachedClient = await client.connect();
@@ -68,7 +76,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`请求处理时间: ${Date.now() - startTime}ms`);
+    console.log(`请求处理时间: ${Date.now() - startTime}ms, 类型: ${type}`);
 
     // 根据查询参数选择响应格式
     if (wantJson) {
@@ -93,7 +101,11 @@ exports.handler = async (event, context) => {
       }
     };
   } catch (error) {
-    console.error('请求处理失败:', error);
+    console.error('请求处理失败:', {
+      error: error,
+      event: event,
+      context: context
+    });
     // 错误响应处理
     return {
       statusCode: error.message.includes('无效类型参数') ? 400 : 500,
