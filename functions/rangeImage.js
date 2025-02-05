@@ -61,13 +61,12 @@ exports.handler = async (event, context) => {
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
     return {
-      statusCode: 302,
+      statusCode: 307,
       headers: {
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-store',
         'Location': imageUrl,
         'Access-Control-Allow-Origin': '*',
-        'Referrer-Policy': 'no-referrer',
-        'Vary': '*'
+        'Referrer-Policy': 'no-referrer'
       }
     };
   } catch (error) {
