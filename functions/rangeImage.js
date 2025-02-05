@@ -27,16 +27,17 @@ const connectToDatabase = async () => {
   // 创建新连接
   const client = new MongoClient(MONGODB_URI, {
     maxPoolSize: 10,        // 最大连接池大小
+    connectTimeoutMS: 5000, // 连接超时时间
+    socketTimeoutMS: 5000   // 套接字超时时间
+  });
+
   try {
     cachedClient = await client.connect();
+    return cachedClient;
   } catch (error) {
     console.error('MongoDB连接失败:', error);
     throw new Error('数据库连接失败');
   }
-    socketTimeoutMS: 5000,  // 套接字超时时间
-  });
-  cachedClient = await client.connect();
-  return cachedClient;
 };
 
 // 获取随机图片URL
