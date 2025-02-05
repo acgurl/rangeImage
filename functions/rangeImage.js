@@ -52,7 +52,10 @@ exports.handler = async (event, context) => {
         statusCode: 404,
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Referrer-Policy': 'no-referrer'
+          'Referrer-Policy': 'no-referrer',
+          'Strict-Transport-Security': 'max-age=31536000',
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY'
         },
         body: JSON.stringify({ error: '未找到图片' })
       };
@@ -66,7 +69,11 @@ exports.handler = async (event, context) => {
         'Cache-Control': 'no-store',
         'Location': imageUrl,
         'Access-Control-Allow-Origin': '*',
-        'Referrer-Policy': 'no-referrer'
+        'Referrer-Policy': 'no-referrer',
+        'Strict-Transport-Security': 'max-age=31536000',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Vary': 'Origin, query'
       }
     };
   } catch (error) {
@@ -75,7 +82,10 @@ exports.handler = async (event, context) => {
       statusCode: error.message.includes('无效类型参数') ? 400 : 500,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Referrer-Policy': 'no-referrer'
+        'Referrer-Policy': 'no-referrer',
+        'Strict-Transport-Security': 'max-age=31536000',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY'
       },
       body: JSON.stringify({
         error: error.message,
