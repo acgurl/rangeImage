@@ -143,22 +143,35 @@
         function getRandomImage() {
             const type = document.getElementById('imageType').value;
             const preview = document.getElementById('preview');
+            const button = document.querySelector('button');
             
             // 显示加载状态
             preview.style.display = 'none';
+            button.disabled = true;
+            button.textContent = '加载中...';
             
-            // 获取新图片
             fetch(`/img?type=${type}&json=true`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.url) {
                         preview.src = data.url;
                         preview.style.display = 'block';
+                    } else {
+                        throw new Error('No image URL received');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     alert('获取图片失败，请重试');
+                })
+                .finally(() => {
+                    button.disabled = false;
+                    button.textContent = '获取随机图片';
                 });
         }
     </script>

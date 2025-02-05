@@ -13,7 +13,9 @@
 [build.environment]
   GO_VERSION = "1.19"
   GO111MODULE = "on"
-  MONGODB_URI = "mongodb+srv://test:ZZLoPmn4UCEnlKSX@cluster0.l6mx6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+  # 不要在配置文件中暴露数据库连接字符串
+  # 请在Netlify后台设置环境变量
+  MONGODB_URI = "${MONGODB_URI}"
 
 # API重定向规则
 [[redirects]]

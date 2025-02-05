@@ -46,3 +46,22 @@ go build -o functions/rangeImage ./functions/rangeImage.go
 ```bash
 git push
 ```
+
+## 本地开发
+
+1. 复制环境变量示例文件：
+```bash
+cp .env.example .env
+```
+
+2. 修改 .env 文件中的 MongoDB 连接信息
+
+3. 本地测试：
+```bash
+go run functions/rangeImage.go
+```
+
+4. 环境要求：
+- Go 1.19+
+- MongoDB 4.0+
+- Netlify CLI (可选)
