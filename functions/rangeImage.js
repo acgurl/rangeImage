@@ -58,20 +58,16 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 确保移除所有查询参数
-    const urlObj = new URL(imageUrl);
-    urlObj.search = ''; // 清除查询参数
-    const cleanedImageUrl = urlObj.toString(); // 获取完整的 URL 字符串
-
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
     return {
       statusCode: 302,
       headers: {
         'Cache-Control': 'no-cache',
-        'Location': cleanedImageUrl,
+        'Location': imageUrl,
         'Access-Control-Allow-Origin': '*',
-        'Referrer-Policy': 'no-referrer'
+        'Referrer-Policy': 'no-referrer',
+        'Vary': '*'
       }
     };
   } catch (error) {
