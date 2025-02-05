@@ -31,16 +31,6 @@ const connectToDatabase = async () => {
   return cachedClient;
 };
 
-// 清理URL，移除所有查询参数
-const cleanImageUrl = (url) => {
-  try {
-    return url.split('?')[0];  // 简单地移除所有查询参数
-  } catch (error) {
-    console.error('URL清理失败:', error);
-    return url;
-  }
-};
-
 // 获取随机图片URL
 const getRandomImageUrl = async (type) => {
   // 验证图片类型是否有效
@@ -53,11 +43,11 @@ const getRandomImageUrl = async (type) => {
 
   // 随机获取一条记录
   const result = await collection.aggregate([
-    { $sample: { size: 1 } },        // 随机取样
-    { $project: { _id: 0, url: 1 } } // 只返回url字段
+    { $sample: { size: 1 } },
+    { $project: { _id: 0, url: 1 } }
   ]).next();
 
-  return result?.url ? cleanImageUrl(result.url) : null;
+  return result?.url || null;
 };
 
 // Netlify Functions处理函数
@@ -84,9 +74,9 @@ exports.handler = async (event, context) => {
 
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
-    // 返回重定向响应
+    // 返回响应
     return {
-      statusCode: 302,                // 临时重定向，不保留查询参数
+      statusCode: 308,                // 永久重定向
       headers: {
         'Cache-Control': 'no-store',  // 禁止缓存
         'Location': imageUrl,         // 重定向地址
