@@ -34,11 +34,16 @@ func connectToMongoDB() (*mongo.Client, error) {
 		return mongoClient, nil
 	}
 
+	mongoURI := os.Getenv("MONGODB_URI")
+	if mongoURI == "" {
+		return nil, fmt.Errorf("MONGODB_URI 环境变量未设置")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	clientOptions := options.Client().
-		ApplyURI(os.Getenv("MONGODB_URI")).
+		ApplyURI(mongoURI).
 		SetMaxPoolSize(10).
 		SetConnectTimeout(5 * time.Second).
 		SetSocketTimeout(5 * time.Second)
@@ -61,7 +66,7 @@ func connectToMongoDB() (*mongo.Client, error) {
 // 获取随机图片URL
 func getRandomImageURL(imageType string) (string, error) {
 	collectionName, ok := tableMap[imageType]
-	if !ok {
+	if (!ok) {
 		return "", fmt.Errorf("无效类型参数，支持的类型：%v", getValidTypes())
 	}
 
@@ -113,6 +118,13 @@ func getValidTypes() []string {
 // 处理函数
 func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	startTime := time.Now()
+	
+	// 添加请求日志
+	fmt.Printf("收到请求: 方法=%s, 路径=%s, 查询参数=%v\n", 
+		request.HTTPMethod, 
+		request.Path, 
+		request.QueryStringParameters,
+	)
 
 	// 获取参数
 	imageType := strings.ToLower(request.QueryStringParameters["type"])
@@ -131,6 +143,12 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 			"valid_types": getValidTypes(),
 		}
 		jsonResponse, _ := json.Marshal(response)
+
+		fmt.Printf("请求处理完成: 耗时=%v, 类型=%s, 状态码=%d\n",
+			time.Since(startTime),
+			imageType,
+			statusCode,
+		)
 
 		return events.APIGatewayProxyResponse{
 			StatusCode: statusCode,

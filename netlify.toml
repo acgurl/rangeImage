@@ -2,13 +2,15 @@
   functions = "functions"
   publish = "public"
   command = """
-    go mod tidy && \
+    mkdir -p functions && \
+    go mod verify && \
+    go mod download && \
     go build -o functions/rangeImage ./functions/rangeImage.go
   """
 
 # 环境变量配置
 [build.environment]
-  GO_VERSION = "1.21"
+  GO_VERSION = "1.19"
   GO111MODULE = "on"
   MONGODB_URI = "mongodb+srv://test:ZZLoPmn4UCEnlKSX@cluster0.l6mx6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 

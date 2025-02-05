@@ -155,3 +155,9 @@ go.sum
 # 系统相关
 .DS_Store
 Thumbs.db
+
+# Go specific
+/vendor/
+*.prof
+*.trace
+*.cover
