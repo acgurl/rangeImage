@@ -1,4 +1,6 @@
 const { MongoClient } = require('mongodb');
+const ejs = require('ejs');
+const path = require('path');
 
 // MongoDB连接配置
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -56,8 +58,8 @@ exports.handler = async (event, context) => {
     const startTime = Date.now();
     const type = event.queryStringParameters?.type?.toLowerCase();
     const imageUrl = await getRandomImageUrl(type);
+    const accept = event.headers.accept || '';
 
-    // 处理未找到图片的情况
     if (!imageUrl) {
       return {
         statusCode: 404,
@@ -74,23 +76,64 @@ exports.handler = async (event, context) => {
 
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
-    // 清理imageUrl以去除查询参数
-    const cleanImageUrl = new URL(imageUrl).origin + new URL(imageUrl).pathname;
-
-    // 返回响应
-    return {
-      statusCode: 302,                // 临时重定向
-      headers: {
-        'Cache-Control': 'no-store',  // 禁止缓存
-        'Location': cleanImageUrl,      // 重定向地址
-        'Access-Control-Allow-Origin': '*',
-        'Referrer-Policy': 'no-referrer',
-        'Strict-Transport-Security': 'max-age=31536000',
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'Vary': 'Origin, query'       // 缓存变化依据
-      }
-    };
+    // 根据Accept头选择响应格式
+    if (accept.includes('text/html')) {
+      // 返回HTML页面
+      const html = await ejs.renderFile(
+        path.join(__dirname, '../views/redirect.ejs'),
+        { imageUrl }
+      );
+      
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': '*',
+          'Referrer-Policy': 'no-referrer',
+          'Strict-Transport-Security': 'max-age=31536000',
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'Vary': 'Accept, Origin, query'
+        },
+        body: html
+      };
+    } else if (accept.includes('application/json')) {
+      // 返回JSON格式
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': '*',
+          'Referrer-Policy': 'no-referrer',
+          'Strict-Transport-Security': 'max-age=31536000',
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'Vary': 'Accept, Origin, query'
+        },
+        body: JSON.stringify({
+          code: 200,
+          url: imageUrl,
+          type: type
+        })
+      };
+    } else {
+      // 默认使用303重定向
+      return {
+        statusCode: 303,
+        headers: {
+          'Location': imageUrl,
+          'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': '*',
+          'Referrer-Policy': 'no-referrer',
+          'Strict-Transport-Security': 'max-age=31536000',
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'Vary': 'Accept, Origin, query'
+        }
+      };
+    }
   } catch (error) {
     console.error('请求处理失败:', error);
     // 错误响应处理
