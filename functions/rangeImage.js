@@ -64,7 +64,7 @@ exports.handler = async (event, context) => {
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
     return {
-      statusCode: 307,
+      statusCode: 302, // 改用302重定向
       headers: {
         'Cache-Control': 'no-store',
         'Location': imageUrl,
