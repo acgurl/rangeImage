@@ -1,6 +1,4 @@
 const { MongoClient } = require('mongodb');
-const ejs = require('ejs');
-const path = require('path');
 
 // MongoDB连接配置
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -58,7 +56,7 @@ exports.handler = async (event, context) => {
     const startTime = Date.now();
     const type = event.queryStringParameters?.type?.toLowerCase();
     const imageUrl = await getRandomImageUrl(type);
-    const accept = event.headers.accept || '';
+    const wantJson = event.queryStringParameters?.json === 'true';
 
     if (!imageUrl) {
       return {
@@ -72,23 +70,8 @@ exports.handler = async (event, context) => {
 
     console.log(`请求处理时间: ${Date.now() - startTime}ms`);
 
-    // 根据Accept头选择响应格式
-    if (accept.includes('text/html')) {
-      // 返回HTML页面
-      const html = await ejs.renderFile(
-        path.join(__dirname, '../views/redirect.ejs'),
-        { imageUrl }
-      );
-      
-      return {
-        statusCode: 200,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8'
-        },
-        body: html
-      };
-    } else if (accept.includes('application/json')) {
-      // 返回JSON格式
+    // 根据查询参数选择响应格式
+    if (wantJson) {
       return {
         statusCode: 200,
         headers: {
@@ -100,15 +83,15 @@ exports.handler = async (event, context) => {
           type: type
         })
       };
-    } else {
-      // 默认使用303重定向
-      return {
-        statusCode: 303,
-        headers: {
-          'Location': imageUrl
-        }
-      };
     }
+
+    // 默认使用303重定向
+    return {
+      statusCode: 303,
+      headers: {
+        'Location': imageUrl
+      }
+    };
   } catch (error) {
     console.error('请求处理失败:', error);
     // 错误响应处理
