@@ -3,6 +3,7 @@
   publish = "public"
   command = """
     mkdir -p functions && \
+    go mod tidy && \
     go mod verify && \
     go mod download && \
     go build -o functions/rangeImage ./functions/rangeImage.go

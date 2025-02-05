@@ -144,7 +144,7 @@ functions/rangeImage.exe
 *.dylib
 *.test
 *.out
-go.sum
+# 删除 go.sum
 
 # IDE相关
 .idea/
