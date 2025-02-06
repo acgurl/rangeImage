@@ -23,6 +23,7 @@ var tableMap = map[string]string{
 	"yss": "api_yss", // 原神竖屏
 	"xqh": "api_xqh", // 星穹横屏
 	"xqs": "api_xqs", // 星穹竖屏
+	"bing" : "api_bing", // 必应每日壁纸
 }
 
 var (
@@ -36,9 +37,20 @@ var (
 	cacheSize   = 10  // 每个类型缓存10个URL
 )
 
+var metrics = struct {
+    sync.RWMutex
+    requestCount   map[string]int
+    responseTime   map[string]time.Duration
+		sync.RWMutex
+		urls map[string][]string
+	}{urls: make(map[string][]string)}
+	cacheSize   = 10  // 每个类型缓存10个URL
+)
+
 // 数据库连接函数优化
 func connectToMongoDB() (*mongo.Client, error) {
 	if mongoClient != nil {
+		return mongoClient, nil
 		return mongoClient, nil
 	}
 
@@ -53,7 +65,6 @@ func connectToMongoDB() (*mongo.Client, error) {
 		SetMinPoolSize(1).
 		SetMaxConnIdleTime(time.Minute).
 		SetConnectTimeout(5*time.Second).     // 增加连接超时
-		SetServerSelectionTimeout(5*time.Second).  // 增加服务器选择超时
 		SetSocketTimeout(10*time.Second)          // 增加套接字超时
 
 	// 使用更长的上下文超时
@@ -285,6 +296,17 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		StatusCode: 303,
 		Headers: map[string]string{
 			"Location": imageURL,
+			"Location": imageURL,
+			"Referrer-Policy": "no-referrer",
+			"Access-Control-Allow-Origin": "*",
+		},
+	}, nil
+}
+
+func main() {
+	lambda.Start(handler)
+}
+
 			"Referrer-Policy": "no-referrer",
 			"Access-Control-Allow-Origin": "*",
 		},

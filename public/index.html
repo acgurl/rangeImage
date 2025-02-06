@@ -100,7 +100,9 @@
                 <option value="yss">原神竖屏</option>
                 <option value="xqh">星穹横屏</option>
                 <option value="xqs">星穹竖屏</option>
+                <option value="bing">必应每日壁纸</option>
             </select>
+            <input type="text" id="imageStyle" placeholder="输入样式参数(可选)">
             <button onclick="getRandomImage()">获取随机图片</button>
             <div id="result">
                 <img id="preview" style="display: none;" />
@@ -126,6 +128,14 @@
             <li><code>yss</code> - 原神竖屏</li>
             <li><code>xqh</code> - 星穹横屏</li>
             <li><code>xqs</code> - 星穹竖屏</li>
+            <li><code>bing</code> - 必应每日壁纸</li>
+        </ul>
+
+        <h2>请求参数</h2>
+        <ul>
+            <li><code>type</code> - 图片类型,必选</li>
+            <li><code>style</code> - 图片样式,可选</li>
+            <li><code>json</code> - 是否返回JSON,可选</li>
         </ul>
 
         <footer class="footer">
@@ -142,6 +152,7 @@
     <script>
         function getRandomImage() {
             const type = document.getElementById('imageType').value;
+            const style = document.getElementById('imageStyle').value;
             const preview = document.getElementById('preview');
             const button = document.querySelector('button');
             
@@ -150,19 +161,17 @@
             button.disabled = true;
             button.textContent = '加载中...';
             
-            fetch(`/img?type=${type}&json=true`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
+            const params = new URLSearchParams({type, json: 'true'});
+            if(style) params.append('style', style);
+            
+            fetch(`/img?${params.toString()}`)
+                .then(response => response.json())
                 .then(data => {
                     if (data.url) {
                         preview.src = data.url;
                         preview.style.display = 'block';
                     } else {
-                        throw new Error('No image URL received');
+                        throw new Error(data.error || 'No image URL received');
                     }
                 })
                 .catch(error => {
