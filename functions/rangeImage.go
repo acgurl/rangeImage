@@ -168,44 +168,45 @@ func connectToMongoDB() (*mongo.Client, error) {
 
 // 批量获取URLs并缓存
 func preloadURLs(client *mongo.Client, imageType string) error {
-	// 使用更长的上下文超时
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+    // 使用更长的上下文超时
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
 
-	collection := client.Database(dbName).Collection(tableMap[imageType])
-	
-	pipeline := mongo.Pipeline{
-		{bson.D{{"$sample", bson.D{{"size", cacheSize}}}}},
-		{bson.D{{"$project", bson.D{{"_id", 0}, {"url", 1}}}}},
-	}
+    collection := client.Database(dbName).Collection(tableMap[imageType])
+    
+    // 修正：修改 pipeline 语法
+    pipeline := mongo.Pipeline{
+        {{Key: "$sample", Value: bson.D{{Key: "size", Value: cacheSize}}}},
+        {{Key: "$project", Value: bson.D{{Key: "_id", Value: 0}, {Key: "url", Value: 1}}}},
+    }
 
-	cursor, err := collection.Aggregate(ctx, pipeline)
-	if (err != nil) {
-		return err
-	}
-	defer cursor.Close(ctx)
+    cursor, err := collection.Aggregate(ctx, pipeline)
+    if (err != nil) {
+        return err
+    }
+    defer cursor.Close(ctx)
 
-	var urls []string
-	for cursor.Next(ctx) {
-		var result struct {
-			URL string `bson:"url"`
-		}
-		if err := cursor.Decode(&result); err != nil {
-			continue
-		}
-		urls = append(urls, result.URL)
-	}
+    var urls []string
+    for cursor.Next(ctx) {
+        var result struct {
+            URL string `bson:"url"`
+        }
+        if err := cursor.Decode(&result); err != nil {
+            continue
+        }
+        urls = append(urls, result.URL)
+    }
 
-	if len(urls) > 0 {
-		cache.Lock()
-		cache.items[imageType] = &CacheItem{
-			URLs:      urls,
-			UpdatedAt: time.Now(),
-		}
-		cache.Unlock()
-	}
+    if len(urls) > 0 {
+        cache.Lock()
+        cache.items[imageType] = &CacheItem{
+            URLs:      urls,
+            UpdatedAt: time.Now(),
+        }
+        cache.Unlock()
+    }
 
-	return nil
+    return nil
 }
 
 // 优化缓存获取
