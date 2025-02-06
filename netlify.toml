@@ -19,6 +19,13 @@
 
 # API重定向规则
 [[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/rangeImage"
+  status = 200
+  force = true
+  headers = {Access-Control-Allow-Origin = "*"}
+
+[[redirects]]
   from = "/img"
   to = "/.netlify/functions/rangeImage"
   status = 200

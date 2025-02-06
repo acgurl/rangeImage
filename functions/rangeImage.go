@@ -482,18 +482,22 @@ func initMongoDB() error {
             return err
         }
         
-        // 创建索引
-        ctx := context.Background()
-        for _, collection := range tableMap {
-            _, err = client.Database(dbName).Collection(collection).Indexes().CreateOne(ctx,
-                mongo.IndexModel{
-                    Keys: bson.D{{"url", 1}},
-                    Options: options.Index().SetUnique(true),
-                })
-            if err != nil {
-                return fmt.Errorf("创建索引失败: %v", err)
+        // 尝试创建索引，但不阻止服务启动
+        go func() {
+            ctx := context.Background()
+            for _, collection := range tableMap {
+                _, err = client.Database(dbName).Collection(collection).Indexes().CreateOne(ctx,
+                    mongo.IndexModel{
+                        Keys: bson.D{{"url", 1}},
+                        Options: options.Index().SetUnique(true),
+                    })
+                if err != nil {
+                    fmt.Printf("警告：创建索引失败（%s）: %v\n", collection, err)
+                }
             }
-        }
+        }()
+
+        // 只要能连接数据库就返回成功
         return nil
     })
 }
@@ -584,7 +588,7 @@ func withRecovery(handler func(events.APIGatewayProxyRequest) (events.APIGateway
 func main() {
     // 初始化数据库连接
     if err := initMongoDB(); err != nil {
-        fmt.Printf("Failed to initialize MongoDB: %v\n", err)
+        fmt.Printf("数据库连接失败: %v\n", err)
         os.Exit(1)
     }
     
