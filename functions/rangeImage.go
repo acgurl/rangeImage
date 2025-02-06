@@ -17,79 +17,79 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// 图片类型与集合映射
+// 全局变量定义
 var tableMap = map[string]string{
-	"ysh": "api_ysh", // 原神横屏
-	"yss": "api_yss", // 原神竖屏
-	"xqh": "api_xqh", // 星穹横屏
-	"xqs": "api_xqs", // 星穹竖屏
-	"bing" : "api_bing", // 必应每日壁纸
+    "ysh": "api_ysh", // 原神横屏图片集合
+    "yss": "api_yss", // 原神竖屏图片集合
+    "xqh": "api_xqh", // 星穹铁道横屏图片集合
+    "xqs": "api_xqs", // 星穹铁道竖屏图片集合
+    "bing": "api_bing", // 必应每日壁纸集合
 }
 
-// 添加支持style的类型集合
+// 定义支持样式转换的图片类型
 var styleEnabledTypes = map[string]bool{
-    "ysh": true,
-    "yss": true,
-    "xqh": true,
-    "xqs": true,
+    "ysh": true, // 原神横屏支持样式转换
+    "yss": true, // 原神竖屏支持样式转换
+    "xqh": true, // 星穹铁道横屏支持样式转换
+    "xqs": true, // 星穹铁道竖屏支持样式转换
 }
 
-// 添加错误类型
+// API错误响应结构
 type ApiError struct {
-    Code    int    `json:"code"`
-    Message string `json:"message"`
-    Type    string `json:"type"`
+    Code    int    `json:"code"`    // 错误码
+    Message string `json:"message"` // 错误信息
+    Type    string `json:"type"`    // 错误类型
 }
 
-// 添加响应结构
+// API统一响应结构
 type ApiResponse struct {
-    Success bool        `json:"success"`
-    Data    interface{} `json:"data,omitempty"`
-    Error   *ApiError   `json:"error,omitempty"`
+    Success bool        `json:"success"`      // 请求是否成功
+    Data    interface{} `json:"data,omitempty"`  // 响应数据
+    Error   *ApiError   `json:"error,omitempty"` // 错误信息
 }
 
-// 增加配置常量
+// 系统配置常量
 const (
-    cacheSize = 20        // 增加缓存容量
-    cacheExpiration = 30 * time.Minute  // 缓存过期时间
-    maxConnections = 10   // 最大连接数
-    rateLimit = 100      // 每分钟请求限制
-    cleanupInterval = 5 * time.Minute  // 清理周期
-    maxRetries = 3                     // 最大重试次数
-    retryInterval = time.Second        // 重试间隔
+    cacheSize = 20                    // 缓存图片数量
+    cacheExpiration = 30 * time.Minute // 缓存过期时间
+    maxConnections = 10               // 最大并发连接数
+    rateLimit = 100                   // 每分钟最大请求次数
+    cleanupInterval = 5 * time.Minute // 缓存清理间隔
+    maxRetries = 3                    // 最大重试次数
+    retryInterval = time.Second       // 重试等待时间
 )
 
-// 缓存结构优化
+// 缓存项结构
 type CacheItem struct {
-    URLs      []string
-    UpdatedAt time.Time
+    URLs      []string    // 缓存的图片URL列表
+    UpdatedAt time.Time   // 最后更新时间
 }
 
-// 优化缓存结构
-type Cache struct {
+// 缓存管理器
+type Cache struct { // 修正：添加 struct 关键字
+    sync.RWMutex              
+    items    map[string]*CacheItem  
+    lastClean time.Time       
+}
+
+// 性能指标收集器
+type Metrics struct { // 修正：添加 struct 关键字
     sync.RWMutex
-    items    map[string]*CacheItem
-    lastClean time.Time
+    RequestCount    map[string]int           
+    ResponseTime    map[string]time.Duration 
+    ErrorCount     map[string]int           
+    CacheMissCount map[string]int          
+    LastCleanup    time.Time               
+    CacheSize      map[string]int          
+    AvgResponseTime map[string]time.Duration 
 }
 
-// 增加指标收集
-type Metrics struct {
-    sync.RWMutex
-    RequestCount    map[string]int
-    ResponseTime    map[string]time.Duration
-    ErrorCount     map[string]int
-    CacheMissCount map[string]int
-    LastCleanup    time.Time
-    CacheSize      map[string]int
-    AvgResponseTime map[string]time.Duration
-}
-
-// 增加健康检查结构
-type HealthStatus struct {
-    Status      string            `json:"status"`
-    CacheStats  map[string]int    `json:"cache_stats"`
-    DBStatus    string           `json:"db_status"`
-    Uptime      string           `json:"uptime"`
+// 健康状态结构
+type HealthStatus struct { // 修正：添加 struct 关键字
+    Status      string            `json:"status"`      
+    CacheStats  map[string]int    `json:"cache_stats"` 
+    DBStatus    string           `json:"db_status"`    
+    Uptime      string           `json:"uptime"`       
 }
 
 var (
@@ -175,8 +175,8 @@ func preloadURLs(client *mongo.Client, imageType string) error {
 	collection := client.Database(dbName).Collection(tableMap[imageType])
 	
 	pipeline := mongo.Pipeline{
-		{{"$sample", bson.D{{"size", cacheSize}}}},
-		{{"$project", bson.D{{"_id", 0}, {"url", 1}}}},
+		{bson.D{{"$sample", bson.D{{"size", cacheSize}}}}},
+		{bson.D{{"$project", bson.D{{"_id", 0}, {"url", 1}}}}},
 	}
 
 	cursor, err := collection.Aggregate(ctx, pipeline)
@@ -279,7 +279,7 @@ func getValidTypes() []string {
 
 // 处理图片URL，插入style参数
 func processImageURL(originalURL string, style string, imageType string) string {
-    // 检查是否支持style
+    // 如果样式为空或类型不支持样式转换，直接返回原始URL
     if style == "" || !styleEnabledTypes[imageType] {
         return originalURL
     }
@@ -510,25 +510,7 @@ func isValidRequest(request events.APIGatewayProxyRequest) bool {
         return false
     }
     
-    // 检查 style 参数安全性
-    if style := request.QueryStringParameters["style"]; style != "" {
-        if len(style) > 50 || !isValidStyle(style) {
-            return false
-        }
-    }
-    
     return true
-}
-
-// 验证样式参数
-func isValidStyle(style string) bool {
-    validStyles := []string{".webp", ".jpg", ".png"}
-    for _, valid := range validStyles {
-        if style == valid {
-            return true
-        }
-    }
-    return false
 }
 
 // 统一错误响应
