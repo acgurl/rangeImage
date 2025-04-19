@@ -195,7 +195,7 @@
     <script>
         // 检查服务健康状态
         function checkHealth() {
-            fetch('/health')
+            fetch('/status')
                 .then(response => response.json())
                 .then(data => {
                     const statusEl = document.getElementById('healthStatus');

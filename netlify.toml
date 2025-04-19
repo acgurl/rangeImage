@@ -19,7 +19,7 @@
 
 # API重定向规则
 [[redirects]]
-  from = "/health"
+  from = "/status"
   to = "/.netlify/functions/rangeImage"
   status = 200
   force = true
